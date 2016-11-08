@@ -3,6 +3,8 @@
 .data
 temp1 word ?
 temp2 word ?
+temp3 byte 0,0
+
 row word ?
 col word ?
 col2 byte ?
@@ -16,21 +18,60 @@ string2 byte "Canon A","$"
 string3 byte "Canon B","$"
 gameover byte "Game Over","$"
 msg1 db " hello, world! "
+bool1 byte 0
+bool2 byte 0
+bool3 byte 0,0
+rightborder byte 55
+canoncount byte 1
+rowstart byte 2,2
+bool4 byte 1
+
+myrobot db "__  ^-^ "
+db 	   "|| (o o)"
+db         "||  |-| "
+db         "| \+===+"
+db         " \_|   |"
+db         "   |   |"
+db         "   +---+"
+db         "   =   ="
+db         "   =   ="
+db         "   _   _"
+
+rowrobot db 16
+
+
 
 canon struc
   column byte ?
   life word 10
+  columnstart byte 0
+  columnend byte ?
+  firepoint byte ?
 canon ends
+
+robot struc
+  life word 10
+  score word 0
+  column byte 30
+robot ends
 
 canon1 canon<>
 canon2 canon<>
+canon3 canon<>
+coalrobot robot<>
 
 .code
 mov ax,@data
 mov ds,ax
 
 mov canon1.column,0
-mov canon2.column,55
+mov canon1.columnend,55
+mov canon2.column,27
+mov canon2.columnstart,29
+mov canon2.columnend,55
+mov canon3.columnstart,38
+mov canon3.column,39
+mov canon3.columnend,55
 
 
 mov col2,0
@@ -48,8 +89,134 @@ mov bx,0
 mov cx,0
 mov dx,0
 
+cmp canoncount,2
+je increasecanon
+cmp canoncount,3
+je increasecanon2
+jmp ign2
+increasecanon:            ; if canon count is 2
+	mov al,rightborder
+	mov bl,2
+	div bl
+	sub al,3
+	mov canon1.columnend,al
+	jmp ign2
+
+increasecanon2:            ; If canon count is 3
+	mov al,rightborder
+	mov bl,3
+	div bl
+	sub al,3
+	mov canon1.columnend,al
+        mov bl,al
+	add al,3
+	mov canon2.columnstart,al
+	mov al,bl
+	add al,al
+	;sub al,3
+	add al,1
+	mov canon2.columnend,al
+	jmp ign2
+ign2:
+
 call interface
 call scoreboard
+call CalculateFirepoint
+
+
+cmp bool3,0 ; bool3 used for firing from canon1
+je setfire
+jmp out1
+setfire:
+   mov cl,canon1.firepoint	
+   mov temp3,cl
+   mov bool3,1
+   mov rowstart,2
+
+out1:
+cmp bool3,1
+je fire1                  ;25
+jmp out2
+fire1:
+
+cmp canon1.life,0
+jle setfire2
+
+	mov ah,02h
+	mov dh,rowstart  ; row max(30)
+	mov dl,temp3 ; col
+	int 10h
+	mov al,'*'
+	mov bl,137  ; color
+	mov cx,1 
+	mov ah,09h
+	int 10h
+	inc rowstart
+
+
+out2:
+cmp rowstart,25
+jne setfire2
+ mov bool3,0
+ mov rowstart,2
+
+setfire2:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+cmp bool3[1],0 ; bool3 used for firing from canon1
+je setfires
+jmp out1s
+setfires:
+   mov cl,canon2.firepoint	
+   mov temp3[1],cl
+   mov bool3[1],1
+   mov rowstart[1],2
+
+out1s:
+cmp bool3[1],1
+je fire1s                  ;25
+jmp out2s
+fire1s:
+
+cmp canon2.life,0
+jle setfire2s
+cmp canoncount,2
+jb setfire2s
+
+	mov ah,02h
+	mov dh,rowstart[1]  ; row max(30)
+	mov dl,temp3[1] ; col
+	int 10h
+	mov al,'*'
+	mov bl,137  ; color
+	mov cx,1 
+	mov ah,09h
+	int 10h
+	inc rowstart[1]
+
+
+out2s:
+cmp rowstart[1],25
+jne setfire2s
+ mov bool3[1],0
+ mov rowstart[1],2
+
+setfire2s:
+
+
+
 
 ;;;;;;;;;;;;;;;;;; Border
 ;mov row,0
@@ -83,63 +250,234 @@ mov dl,64 ; col max(80)
 call drawstring
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Print Life Times
+	
+	mov ah,02h
+	mov dh,6  ; row max(30)
+	mov dl,64 ; col
+	int 10h
+	mov al,'|'
+	mov bl,colortext  ; color
+	cmp coalrobot.life,0
+	jle cm0
+	mov cx,coalrobot.life ; prints alphabet life times
+	mov ah,09h
+	int 10h
+	cm0:
+
+
 	mov ah,02h
 	mov dh,9  ; row max(30)
 	mov dl,64 ; col
 	int 10h
 	mov al,'|'
 	mov bl,colortext  ; color
-	mov cx,canon1.life ; prints alphabet 5 times
+	cmp canon1.life,0
+	jle cm1
+	mov cx,canon1.life ; prints alphabet life times
 	mov ah,09h
 	int 10h
 
-
+	cm1:
 	mov ah,02h
 	mov dh,12  ; row max(30)
 	mov dl,64 ; col
 	int 10h
 	mov al,'|'
 	mov bl,colortext  ; color
+	cmp canon2.life,0
+	jle cm2	
 	mov cx,canon2.life ; prints alphabet life times
 	mov ah,09h
 	int 10h
+	cm2:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Print Ends
 
 
 
 ;;;;;;;;;;;;;;;;;;;;;;; Canon Draw
+
+cmp canon1.life,0
+jle draw2
+
 mov cl,canon1.column
 mov col2,cl
 call drawcanon
-inc canon1.column
 
+cmp bool1,0
+je incrementcanon
+cmp bool1,1
+je decrementcanon
+
+jmp ignore1
+incrementcanon:
+	inc canon1.column
+jmp ignore1
+decrementcanon:
+	dec canon1.column
+ignore1:
+
+cmp canoncount,1
+jg draw2
+jmp ndraw2
+draw2:                     ;;;;  Drawing of Canon 2 after certain time
+cmp canon2.life,0
+jle ndraw2
 mov cl,canon2.column
 mov col2,cl
 call drawcanon
 
+cmp bool2,0
+je inccan2
+cmp bool2,1
+je deccan2
+jmp ignore2
+
+inccan2:
+  inc canon2.column
+jmp ignore2
+deccan2:
+  dec canon2.column
+ignore2:
+
+
+ndraw2:
+
+
+
+cmp canoncount,2
+jg draw3
+jmp ndraw3
+draw3:                     ;;;;  Drawing of Canon 3 after certain time
+cmp canon3.life,0
+jle ndraw3
+mov cl,canon3.column
+mov col2,cl
+call drawcanon
+
+cmp bool4,0
+je inccan3
+cmp bool4,1
+je deccan3
+jmp ignore3
+
+inccan3:
+  inc canon3.column
+jmp ignore3
+deccan3:
+  dec canon3.column
+ignore3:
+
+ndraw3:
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;; Canon Draw end
 
+;;;;;;;;;;;;;;;;;;;;;;;;; Robot Drawing
+
+mov temp2,0
+mov rowrobot,16
+mov cx,10
+
+drawrobot:
+
+mov si,offset myrobot
+mov bx,temp2
+add si,bx
+mov stringsize,8-1
+mov dh,rowrobot  ; row max(30)
+mov dl,coalrobot.column ; col max(80)
+call drawstring
+add temp2,8
+inc rowrobot
+
+loop drawrobot
+
+;;;;;;;;;;;;;;;;;;;;;;;;; Robot Drawing Ends
+
+
 mov ax,0
-mov cx,0000h
-mov dx,4FFFh
+mov cx,0000h			  ; 0000h           
+mov dx,9FFFh                      ; TIMER 0FFFh ; 0Fh 4240h for 1 second delay
 mov ah,86h
 int 15h
 
-cmp canon1.column,56
+
+;///////////////////////////////////////////// Boundary checks for canons
+
+mov cl,canon1.columnend
+cmp canon1.column,cl
 je label1
+mov cl,canon1.columnstart
+cmp canon1.column,cl
+je label2
 jmp ss2
 label1:
-  mov canon1.column,0
-  dec canon1.life
+  mov bool1,1
+  ;mov canon1.column,0
+  ;dec canon1.life
+  inc coalrobot.column
+  jmp ss2
+label2:
+  mov bool1,0
+  ;dec canon1.life
+  inc coalrobot.column
+  inc canoncount
 ss2:
 
+cmp canoncount,1
+jle ss3
+
+;                   For Canon2                        
+mov cl,canon2.columnend
+cmp canon2.column,cl
+je label3
+mov cl,canon2.columnstart
+cmp canon2.column,cl
+je label4
+jmp ss3
+label3:
+  mov bool2,1
+  ;dec canon2.life
+  inc coalrobot.column
+  jmp ss3
+label4:
+  mov bool2,0
+  ;dec canon2.life
+  inc coalrobot.column
+ss3:
+;                Canon2 Ends
+
+mov cl,canon3.columnend
+cmp canon3.column,cl
+je label5
+mov cl,canon3.columnstart
+cmp canon3.column,cl
+je label6
+jmp ss4
+label5:
+  mov bool4,1
+  ;dec canon3.life
+  ;inc coalrobot.column
+  jmp ss4
+label6:
+  mov bool4,0
+  ;dec canon3.life
+  ;inc coalrobot.column
+ss4:
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Boundary Checks Ends
+
+;;;;;;;;;;;;;;;;;;;; GAME OVER Condition
 cmp canon1.life,0
-je exit
+jg repeat1
+cmp canon2.life,0
+jle exit
+;;;;;;;;;;;;;;;;;;;; GAME OVER
 
 
-;mov ah,01h
-;int 21h
-
+repeat1:
 
 call main
 
@@ -161,6 +499,44 @@ int 21h
 
 
 main endp   ;/////////////////////////////////////////////// Main Ends
+
+
+CalculateFirepoint proc
+
+push dx
+
+mov dl,canon1.column ; row is 2 always
+add dl,2
+mov canon1.firepoint,dl
+
+mov dl,canon2.column ; row is 2 always
+add dl,2
+mov canon2.firepoint,dl
+
+mov dl,canon3.column ; row is 2 always
+add dl,2
+mov canon3.firepoint,dl
+
+
+
+pop dx
+ret
+
+CalculateFirepoint endp
+
+
+
+Fire proc
+
+
+
+
+
+
+
+
+
+Fire endp
 
 
 cls proc
