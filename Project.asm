@@ -3,7 +3,8 @@
 .data
 temp1 word ?
 temp2 word ?
-temp3 byte 0,0
+temp3 byte 0,0,0,0,0
+varf byte 0,0,0
 
 row word ?
 col word ?
@@ -16,15 +17,21 @@ colortext byte 150 ; > 128 with no backround color ; 150->white  137->black
 string1 byte "Coal Man","$"
 string2 byte "Canon A","$"
 string3 byte "Canon B","$"
+string4 byte "Canon C","$"
+stringspeed byte "Speed ","$"
 gameover byte "Game Over","$"
 msg1 db " hello, world! "
 bool1 byte 0
 bool2 byte 0
-bool3 byte 0,0
+bool3 byte 0,0,0,0
 rightborder byte 55
 canoncount byte 1
-rowstart byte 2,2
-bool4 byte 1
+rowstart byte 2,2,2,16
+bool4 byte 0
+boolr byte 0
+boolrf byte 0
+bulletspeed byte 1
+count word 0
 
 myrobot db "__  ^-^ "
 db 	   "|| (o o)"
@@ -53,11 +60,13 @@ robot struc
   life word 10
   score word 0
   column byte 30
+  row byte 16
 robot ends
 
 canon1 canon<>
 canon2 canon<>
 canon3 canon<>
+canon4 canon<>
 coalrobot robot<>
 
 .code
@@ -69,8 +78,8 @@ mov canon1.columnend,55
 mov canon2.column,27
 mov canon2.columnstart,29
 mov canon2.columnend,55
-mov canon3.columnstart,38
-mov canon3.column,39
+mov canon3.column,38
+mov canon3.columnstart,39
 mov canon3.columnend,55
 
 
@@ -88,6 +97,24 @@ mov ax,0
 mov bx,0
 mov cx,0
 mov dx,0
+
+;MOV AH, 06h ; function number
+;MOV AL, 0
+;mov ch,0   ; start row
+;MOV cl, 0 ; start col
+;MOV DH, 29 ; row end
+;MOV DL, 79 ; col end
+;MOV BH, 0 ; color (sky blue)
+;INT 10h
+
+cmp canoncount,3
+jg setcanons
+jmp continue1
+
+setcanons:
+ mov canoncount,3
+continue1:
+
 
 cmp canoncount,2
 je increasecanon
@@ -109,113 +136,91 @@ increasecanon2:            ; If canon count is 3
 	sub al,3
 	mov canon1.columnend,al
         mov bl,al
-	add al,3
+	add al,4
 	mov canon2.columnstart,al
 	mov al,bl
 	add al,al
-	;sub al,3
-	add al,1
+	add al,3
 	mov canon2.columnend,al
+	
 	jmp ign2
 ign2:
 
+;call cls
 call interface
 call scoreboard
 call CalculateFirepoint
 
 
-cmp bool3,0 ; bool3 used for firing from canon1
-je setfire
-jmp out1
-setfire:
-   mov cl,canon1.firepoint	
-   mov temp3,cl
-   mov bool3,1
-   mov rowstart,2
-
-out1:
-cmp bool3,1
-je fire1                  ;25
-jmp out2
-fire1:
-
-cmp canon1.life,0
-jle setfire2
-
-	mov ah,02h
-	mov dh,rowstart  ; row max(30)
-	mov dl,temp3 ; col
-	int 10h
-	mov al,'*'
-	mov bl,137  ; color
-	mov cx,1 
-	mov ah,09h
-	int 10h
-	inc rowstart
 
 
-out2:
-cmp rowstart,25
-jne setfire2
- mov bool3,0
- mov rowstart,2
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; FIRE
 
-setfire2:
+mov si,0
+mov di,offset canon1
+mov varf,0
 
+fireloop:
 
-
-
-
-
-
-
-
-
-
-
-
-
-cmp bool3[1],0 ; bool3 used for firing from canon1
+cmp bool3[si],0 ; bool3 used for firing from canon1
 je setfires
 jmp out1s
 setfires:
-   mov cl,canon2.firepoint	
-   mov temp3[1],cl
-   mov bool3[1],1
-   mov rowstart[1],2
+   ;mov cl,canon2.firepoint ; +5	
+   mov cl,[di+5]
+   mov temp3[si],cl
+   mov bool3[si],1
+   mov rowstart[si],2
 
 out1s:
-cmp bool3[1],1
+cmp bool3[si],1
 je fire1s                  ;25
 jmp out2s
 fire1s:
-
-cmp canon2.life,0
+push cx
+mov cx,[di+1]
+cmp cx,0
 jle setfire2s
-cmp canoncount,2
-jb setfire2s
+pop cx
+;cmp canoncount,2
+;jb setfire2s
 
 	mov ah,02h
-	mov dh,rowstart[1]  ; row max(30)
-	mov dl,temp3[1] ; col
+	mov dh,rowstart[si]  ; row max(30)
+	mov dl,temp3[si] ; col
 	int 10h
 	mov al,'*'
 	mov bl,137  ; color
 	mov cx,1 
 	mov ah,09h
 	int 10h
-	inc rowstart[1]
+	mov bl,bulletspeed
+	add rowstart[si],bl
 
 
 out2s:
-cmp rowstart[1],25
-jne setfire2s
- mov bool3[1],0
- mov rowstart[1],2
+ cmp rowstart[si],25
+ jle setfire2s
+ mov bool3[si],0
+ mov rowstart[si],2
 
 setfire2s:
+pop cx
+inc varf
+mov dl,canoncount
+cmp dl,varf
+je fireloope
+
+inc si
+add di,6
 
 
+jmp fireloop
+fireloope:
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;; Fire End
 
 
 ;;;;;;;;;;;;;;;;;; Border
@@ -248,6 +253,32 @@ mov stringsize,6
 mov dh,11  ; row max(30)
 mov dl,64 ; col max(80)
 call drawstring
+
+
+mov dh,14  ; row max(30)
+mov dl,64 ; col max(80)
+mov si,offset string4
+mov stringsize,6
+call drawstring
+
+mov dh,2  ; row max(30)
+mov dl,64 ; col max(80)
+mov si,offset stringspeed 
+mov stringsize,4
+call drawstring
+
+
+mov ah,02h
+mov dh,2  ; row max(30)
+mov dl,64+6 ; col
+int 10h
+mov al,bulletspeed
+add al,30h
+mov bl,colortext  ; color
+mov cx,1 ; prints alphabet life times
+mov ah,09h
+int 10h
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Print Life Times
 	
@@ -290,6 +321,20 @@ call drawstring
 	mov ah,09h
 	int 10h
 	cm2:
+
+        mov ah,02h
+	mov dh,15  ; row max(30)
+	mov dl,64 ; col
+	int 10h
+	mov al,'|'
+	mov bl,colortext  ; color
+	cmp canon3.life,0
+	jle cm3	
+	mov cx,canon3.life ; prints alphabet life times
+	mov ah,09h
+	int 10h
+	cm3:
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Print Ends
 
 
@@ -310,10 +355,12 @@ je decrementcanon
 
 jmp ignore1
 incrementcanon:
-	inc canon1.column
+ 	mov al,bulletspeed
+	add canon1.column,al
 jmp ignore1
 decrementcanon:
-	dec canon1.column
+        mov al,bulletspeed
+	sub canon1.column,al
 ignore1:
 
 cmp canoncount,1
@@ -333,16 +380,15 @@ je deccan2
 jmp ignore2
 
 inccan2:
-  inc canon2.column
+  mov al,bulletspeed
+  add canon2.column,al
 jmp ignore2
 deccan2:
-  dec canon2.column
+  mov al,bulletspeed
+  sub canon2.column,al
 ignore2:
 
-
 ndraw2:
-
-
 
 cmp canoncount,2
 jg draw3
@@ -361,10 +407,12 @@ je deccan3
 jmp ignore3
 
 inccan3:
-  inc canon3.column
+  mov al,bulletspeed
+  add canon3.column,al
 jmp ignore3
 deccan3:
-  dec canon3.column
+  mov al,bulletspeed
+  sub canon3.column,al
 ignore3:
 
 ndraw3:
@@ -393,6 +441,73 @@ inc rowrobot
 
 loop drawrobot
 
+
+
+
+cmp boolr,0
+je incrobot
+cmp boolr,1
+je decrobot
+  
+jmp jumpout
+
+incrobot:
+  inc coalrobot.column
+jmp jumpout
+
+decrobot:
+    dec coalrobot.column
+
+
+jumpout:
+
+
+
+cmp coalrobot.column,50 ; 55-8
+je sss1
+cmp coalrobot.column,0
+je sss2
+jmp ssso
+
+sss1:
+ mov boolr,1 ; left
+ jmp ssso
+sss2:
+ mov boolr,0 ;right
+
+ssso:
+
+
+cmp boolrf,0
+je firrl
+jmp firr
+
+firrl:
+  mov bl,coalrobot.column
+  mov temp3[3],bl
+  mov rowstart[3],16
+  mov boolrf,1
+
+firr:
+    
+	mov ah,02h
+	mov dh,rowstart[3]  ; row max(30)
+	mov dl,temp3[3] ; col
+	int 10h
+	mov al,'|'
+	mov bl,137  ; color
+	mov cx,1 
+	mov ah,09h
+	int 10h
+	dec rowstart[3]
+
+cmp rowstart[3],0 
+jne fieq
+mov boolrf,0
+
+fieq:
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;; Robot Drawing Ends
 
 
@@ -402,26 +517,29 @@ mov dx,9FFFh                      ; TIMER 0FFFh ; 0Fh 4240h for 1 second delay
 mov ah,86h
 int 15h
 
+;mov ax, 1003h
+;mov bx, 0
+;int 10h 
 
 ;///////////////////////////////////////////// Boundary checks for canons
 
 mov cl,canon1.columnend
 cmp canon1.column,cl
-je label1
+jge label1
 mov cl,canon1.columnstart
 cmp canon1.column,cl
-je label2
+jle label2
 jmp ss2
 label1:
   mov bool1,1
   ;mov canon1.column,0
   ;dec canon1.life
-  inc coalrobot.column
+  ;inc coalrobot.column
   jmp ss2
 label2:
   mov bool1,0
   ;dec canon1.life
-  inc coalrobot.column
+  ;inc coalrobot.column
   inc canoncount
 ss2:
 
@@ -431,29 +549,29 @@ jle ss3
 ;                   For Canon2                        
 mov cl,canon2.columnend
 cmp canon2.column,cl
-je label3
+jge label3
 mov cl,canon2.columnstart
 cmp canon2.column,cl
-je label4
+jle label4
 jmp ss3
 label3:
   mov bool2,1
   ;dec canon2.life
-  inc coalrobot.column
+ ; inc coalrobot.column
   jmp ss3
 label4:
   mov bool2,0
   ;dec canon2.life
-  inc coalrobot.column
+  ;inc coalrobot.column
 ss3:
 ;                Canon2 Ends
 
 mov cl,canon3.columnend
 cmp canon3.column,cl
-je label5
+jge label5
 mov cl,canon3.columnstart
 cmp canon3.column,cl
-je label6
+jle label6
 jmp ss4
 label5:
   mov bool4,1
@@ -479,6 +597,14 @@ jle exit
 
 repeat1:
 
+
+inc count
+
+cmp count,350
+jne call1
+inc bulletspeed
+
+call1:
 call main
 
 
@@ -525,23 +651,9 @@ ret
 CalculateFirepoint endp
 
 
-
-Fire proc
-
-
-
-
-
-
-
-
-
-Fire endp
-
-
 cls proc
 	push ax
-	mov AL,03
+	mov AL,12h
 	mov AH,0
 	int 10H
 	pop ax
@@ -706,45 +818,6 @@ scoreboard proc  ;////////////////////  Scoreboard starts
 	MOV BH, 0 ; color 
 	INT 10h
 
-
-	;mov row,0
-	;mov col,490
-	;mov width1,149
-	;mov height1,400
-	;mov color1,15
-	;call printrec
-
-	;inc row
-	;inc col
-	;sub height1,2
-	;sub width1,2
-	;mov color1,15
-	;call printrec
-	
-	;mov cx,9
-	;loopi:
-	; inc row
-	; inc col
-	; sub height1,2
-	; sub width1,2
-	; mov color1,0
-	; call printrec
- 	; loop loopi	
-	
-	;inc row
-	;inc col
-	;sub height1,2
-	;sub width1,2
-	;mov color1,15
-	;call printrec
-
-	;inc row
-	;inc col
-	;sub height1,2
-	;sub width1,2
-	;mov color1,15
-	;call printrec
-
 	pop dx
 	pop cx
 	pop bx
@@ -754,14 +827,14 @@ ret
 scoreboard endp ;/////////////////////// Scoreboard ends
 
 
-
-
 interface proc ;/////////////////////// Background Starts
 	
 	push ax
 	push bx
 	push cx
 	push dx
+
+	
 
 	MOV AH, 06h ; function number
 	MOV AL, 0
