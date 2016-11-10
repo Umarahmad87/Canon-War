@@ -88,9 +88,16 @@ mov ah,0
 mov al,12h ; graphic mode col(640) x row(480) ; 80 x 30
 int 10h
 
+call interface
+call scoreboard
 
 
 main proc ;//////////////////////////////////////////////////// Main
+main1:
+
+;mov ah,0
+;mov al,12h ; graphic mode col(640) x row(480) ; 80 x 30
+;int 10h
 
 
 mov ax,0
@@ -98,14 +105,8 @@ mov bx,0
 mov cx,0
 mov dx,0
 
-;MOV AH, 06h ; function number
-;MOV AL, 0
-;mov ch,0   ; start row
-;MOV cl, 0 ; start col
-;MOV DH, 29 ; row end
-;MOV DL, 79 ; col end
-;MOV BH, 0 ; color (sky blue)
-;INT 10h
+
+
 
 cmp canoncount,3
 jg setcanons
@@ -150,88 +151,6 @@ ign2:
 call interface
 call scoreboard
 call CalculateFirepoint
-
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; FIRE
-
-mov si,0
-mov di,offset canon1
-mov varf,0
-
-fireloop:
-
-cmp bool3[si],0 ; bool3 used for firing from canon1
-je setfires
-jmp out1s
-setfires:
-   ;mov cl,canon2.firepoint ; +5	
-   mov cl,[di+5]
-   mov temp3[si],cl
-   mov bool3[si],1
-   mov rowstart[si],2
-
-out1s:
-cmp bool3[si],1
-je fire1s                  ;25
-jmp out2s
-fire1s:
-push cx
-mov cx,[di+1]
-cmp cx,0
-jle setfire2s
-pop cx
-;cmp canoncount,2
-;jb setfire2s
-
-	mov ah,02h
-	mov dh,rowstart[si]  ; row max(30)
-	mov dl,temp3[si] ; col
-	int 10h
-	mov al,'*'
-	mov bl,137  ; color
-	mov cx,1 
-	mov ah,09h
-	int 10h
-	mov bl,bulletspeed
-	add rowstart[si],bl
-
-
-out2s:
- cmp rowstart[si],25
- jle setfire2s
- mov bool3[si],0
- mov rowstart[si],2
-
-setfire2s:
-pop cx
-inc varf
-mov dl,canoncount
-cmp dl,varf
-je fireloope
-
-inc si
-add di,6
-
-
-jmp fireloop
-fireloope:
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;; Fire End
-
-
-;;;;;;;;;;;;;;;;;; Border
-;mov row,0
-;mov col,0
-;mov width1,639
-;mov height1,479
-;mov color1,8
-;call printrec
-;;;;;;;;;;;;;;;;; Border
-
 
 
 mov si,offset string1
@@ -287,7 +206,7 @@ int 10h
 	mov dl,64 ; col
 	int 10h
 	mov al,'|'
-	mov bl,colortext  ; color
+	mov bl,130  ; color
 	cmp coalrobot.life,0
 	jle cm0
 	mov cx,coalrobot.life ; prints alphabet life times
@@ -417,8 +336,6 @@ ignore3:
 
 ndraw3:
 
-
-
 ;;;;;;;;;;;;;;;;;;;;;; Canon Draw end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;; Robot Drawing
@@ -435,7 +352,10 @@ add si,bx
 mov stringsize,8-1
 mov dh,rowrobot  ; row max(30)
 mov dl,coalrobot.column ; col max(80)
+push word ptr colortext
+mov colortext,137
 call drawstring
+pop word ptr colortext
 add temp2,8
 inc rowrobot
 
@@ -510,12 +430,109 @@ fieq:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;; Robot Drawing Ends
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; FIRE
+
+mov si,0
+mov di,offset canon1
+mov varf,0
+
+fireloop:
+
+cmp bool3[si],0 ; bool3 used for firing from canon1
+je setfires
+jmp out1s
+setfires:
+   ;mov cl,canon2.firepoint ; +5	
+   mov cl,[di+5]
+   mov temp3[si],cl
+   mov bool3[si],1
+   mov rowstart[si],2
+
+out1s:
+cmp bool3[si],1
+je fire1s                  ;25
+jmp out2s
+fire1s:
+push cx
+mov cx,[di+1]
+cmp cx,0
+jle setfire2s
+pop cx
+;cmp canoncount,2
+;jb setfire2s
+
+	mov ah,02h
+	mov dh,rowstart[si]  ; row max(30)
+	mov dl,temp3[si] ; col
+	int 10h
+	mov al,'*'
+	mov bl,137  ; color
+	mov cx,1 
+	mov ah,09h
+	int 10h
+	mov bl,bulletspeed
+	add rowstart[si],bl
+
+
+out2s:
+ cmp rowstart[si],25
+ jle setfire2s
+ mov bool3[si],0
+ mov rowstart[si],2
+
+setfire2s:
+pop cx
+inc varf
+mov dl,canoncount
+cmp dl,varf
+je fireloope
+
+inc si
+add di,6
+
+
+jmp fireloop
+fireloope:
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;; Fire End
+
+;;;;;;;;;;;;;;;;;; Border
+;mov row,0
+;mov col,0
+;mov width1,639
+;mov height1,479
+;mov color1,8
+;call printrec
+;;;;;;;;;;;;;;;;; Border
+
+
+
+
+
+
+
+
 
 mov ax,0
 mov cx,0000h			  ; 0000h           
 mov dx,9FFFh                      ; TIMER 0FFFh ; 0Fh 4240h for 1 second delay
 mov ah,86h
 int 15h
+
+;call interface
+
+;MOV AH, 06h ; function number
+;MOV AL, 0
+;mov ch,0   ; start row
+;MOV cl, 0 ; start col
+;MOV DH, 29 ; row end
+;MOV DL, 79 ; col end
+;MOV BH, 0 ; color (sky blue)
+;INT 10h
+
+
 
 ;mov ax, 1003h
 ;mov bx, 0
@@ -600,12 +617,12 @@ repeat1:
 
 inc count
 
-cmp count,350
+cmp count,120
 jne call1
 inc bulletspeed
 
 call1:
-call main
+jmp main1
 
 
 
@@ -840,9 +857,9 @@ interface proc ;/////////////////////// Background Starts
 	MOV AL, 0
 	mov ch,0   ; start row
 	MOV cl, 0 ; start col
-	MOV DH, 29 ; row end
+	MOV DH, 24 ; row end
 	MOV DL, 79 ; col end
-	MOV BH, 9 ; color (sky blue)
+	MOV BH, 9 ; color (sky blue 9)
 	INT 10h
 
 	mov ax,0
@@ -857,7 +874,7 @@ interface proc ;/////////////////////// Background Starts
 	MOV cl, 0 ; start col
 	MOV DH, 26 ; row end
 	MOV DL, 79 ; col end
-	MOV BH, 7 ; color 
+	MOV BH, 7 ; color 7
 	INT 10h
 
 	MOV AH, 06h ; function number
@@ -866,7 +883,7 @@ interface proc ;/////////////////////// Background Starts
 	MOV cl, 0 ; start col
 	MOV DH, 29 ; row end
 	MOV DL, 79 ; col end
-	MOV BH, 8 ; color  1(blue)
+	MOV BH, 8 ; color  1(blue) 8
 	INT 10h 
 	
 	pop dx
