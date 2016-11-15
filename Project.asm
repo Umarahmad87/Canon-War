@@ -1,3 +1,10 @@
+;i150087 Umar Ahmad Siddiqi
+;Sec:A
+;
+;i150068 Ahsan Ahmad
+;Sec:F
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .model large
 .stack 100h
 .data
@@ -18,8 +25,13 @@ string1 byte "Coal Man","$"
 string2 byte "Canon A","$"
 string3 byte "Canon B","$"
 string4 byte "Canon C","$"
+scorestring byte "Score","$"
+score byte 0
+scores byte "000","$"
 stringspeed byte "Speed ","$"
 gameover byte "Game Over","$"
+gamebegin byte "Game Begins in",10,"$"
+gamecount byte '3$'
 msg1 db " hello, world! "
 bool1 byte 0
 bool2 byte 0
@@ -30,7 +42,7 @@ rowstart byte 2,2,2,16
 bool4 byte 0
 boolr byte 0
 boolrf byte 0
-bulletspeed byte 1
+bulletspeed byte 1,1
 count word 0
 
 myrobot db "__  ^-^ "
@@ -73,6 +85,90 @@ coalrobot robot<>
 mov ax,@data
 mov ds,ax
 
+
+
+
+StartScreen:
+
+
+
+mov ah,0
+mov al,13h
+int 10h
+
+;call interface
+
+mov ah,02h
+mov dh,10  ; row max(30)
+mov dl,12 ; col
+mov bl,10
+int 10h
+mov dx,offset gamebegin
+;mov al,byte ptr gamebegin
+mov cx,1;lengthof gamebegin
+mov ah,09h
+int 21h
+
+
+mov ah,02h
+mov dh,12  ; row max(30)
+mov dl,18 ; col
+mov bl,10
+int 10h
+mov dx,offset gamecount
+;mov al,byte ptr gamebegin
+mov cx,1;lengthof gamebegin
+mov ah,09h
+int 21h
+
+
+;mov dx,offset gamecount
+;mov al,gamecount
+;mov ah,09h
+;int 21h
+
+;mov ah,02h
+;mov dh,6  ; row max(30)
+;mov dl,64 ; col
+;int 10h
+;mov al,'|'
+;mov bl,3  ; color	
+;mov ah,09h
+;int 10h
+
+
+
+
+
+
+dec gamecount[0]
+
+mov ax,0
+mov cx,000Fh			  ; 0000h           
+mov dx,4240h                      ; TIMER 0FFFh ; 0Fh 4240h for 1 second delay
+mov ah,86h
+int 15h
+
+
+cmp gamecount,'0'
+je screenexit
+
+
+
+
+jmp StartScreen
+
+screenexit:
+
+
+
+
+
+
+
+
+
+
 mov canon1.column,0
 mov canon1.columnend,55
 mov canon2.column,27
@@ -104,8 +200,6 @@ mov ax,0
 mov bx,0
 mov cx,0
 mov dx,0
-
-
 
 
 cmp canoncount,3
@@ -155,10 +249,12 @@ call CalculateFirepoint
 
 mov si,offset string1
 mov stringsize,7
+push word ptr colortext
 mov dh,5  ; row max(30)
 mov dl,64 ; col max(80)
+mov colortext,152
 call drawstring
-
+;pop word ptr colortext
 
 
 mov si,offset string2
@@ -179,6 +275,26 @@ mov dl,64 ; col max(80)
 mov si,offset string4
 mov stringsize,6
 call drawstring
+pop word ptr colortext
+
+
+push word ptr colortext
+mov dh,18  ; row max(30)
+mov dl,64 ; col max(80)
+mov si,offset scorestring
+mov stringsize,5-1
+mov colortext,137
+call drawstring
+
+push word ptr colortext
+mov dh,18  ; row max(30)
+mov dl,70 ; col max(80)
+mov si,offset scores
+mov stringsize,1
+mov colortext,137
+call drawstring
+
+pop word ptr colortext
 
 mov dh,2  ; row max(30)
 mov dl,64 ; col max(80)
@@ -194,7 +310,7 @@ int 10h
 mov al,bulletspeed
 add al,30h
 mov bl,colortext  ; color
-mov cx,1 ; prints alphabet life times
+mov cx,1 
 mov ah,09h
 int 10h
 
@@ -206,7 +322,9 @@ int 10h
 	mov dl,64 ; col
 	int 10h
 	mov al,'|'
-	mov bl,130  ; color
+	push word ptr colortext
+	mov colortext,141
+	mov bl,colortext  ; color
 	cmp coalrobot.life,0
 	jle cm0
 	mov cx,coalrobot.life ; prints alphabet life times
@@ -254,9 +372,14 @@ int 10h
 	int 10h
 	cm3:
 
+pop word ptr colortext
+
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Print Ends
 
-
+call numTostring
 
 ;;;;;;;;;;;;;;;;;;;;;;; Canon Draw
 
@@ -264,8 +387,16 @@ cmp canon1.life,0
 jle draw2
 
 mov cl,canon1.column
+cmp cl,1
+jle dnc
 mov col2,cl
 call drawcanon
+jmp godnc
+dnc:
+mov col2,1
+call drawcanon
+godnc:
+
 
 cmp bool1,0
 je incrementcanon
@@ -274,12 +405,12 @@ je decrementcanon
 
 jmp ignore1
 incrementcanon:
- 	mov al,bulletspeed
-	add canon1.column,al
+ 	mov bl,bulletspeed
+	add canon1.column,bl
 jmp ignore1
 decrementcanon:
-        mov al,bulletspeed
-	sub canon1.column,al
+        mov bl,bulletspeed
+	sub canon1.column,bl
 ignore1:
 
 cmp canoncount,1
@@ -299,12 +430,12 @@ je deccan2
 jmp ignore2
 
 inccan2:
-  mov al,bulletspeed
-  add canon2.column,al
+  mov bl,bulletspeed
+  add canon2.column,bl
 jmp ignore2
 deccan2:
-  mov al,bulletspeed
-  sub canon2.column,al
+  mov bl,bulletspeed
+  sub canon2.column,bl
 ignore2:
 
 ndraw2:
@@ -326,12 +457,12 @@ je deccan3
 jmp ignore3
 
 inccan3:
-  mov al,bulletspeed
-  add canon3.column,al
+  mov bl,bulletspeed
+  add canon3.column,bl
 jmp ignore3
 deccan3:
-  mov al,bulletspeed
-  sub canon3.column,al
+  mov bl,bulletspeed
+  sub canon3.column,bl
 ignore3:
 
 ndraw3:
@@ -362,25 +493,38 @@ inc rowrobot
 loop drawrobot
 
 
+mov ah,1
+int 16h
 
+mov cl,al 
+mov ch,ah ; ah 48h ;up  down 50h left 4Bh Right 4Dh
 
-cmp boolr,0
-je incrobot
-cmp boolr,1
-je decrobot
-  
+cmp ah,4Bh ; Left key
+jne checkr
+dec coalrobot.column
 jmp jumpout
 
-incrobot:
-  inc coalrobot.column
-jmp jumpout
-
-decrobot:
-    dec coalrobot.column
+checkr:
+cmp ah,4Dh ; Right key
+jne jumpout
+inc coalrobot.column
 
 
 jumpout:
 
+
+cmp coalrobot.column,51
+jb normalrun1 
+mov coalrobot.column,51
+
+normalrun1:
+
+cmp coalrobot.column,1
+jg normalrun2
+mov coalrobot.column,1
+
+
+normalrun2:
 
 
 cmp coalrobot.column,50 ; 55-8
@@ -475,7 +619,7 @@ pop cx
 
 
 out2s:
- cmp rowstart[si],25
+ cmp rowstart[si],24
  jle setfire2s
  mov bool3[si],0
  mov rowstart[si],2
@@ -498,22 +642,101 @@ fireloope:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Fire End
 
-;;;;;;;;;;;;;;;;;; Border
-;mov row,0
-;mov col,0
-;mov width1,639
-;mov height1,479
-;mov color1,8
-;call printrec
-;;;;;;;;;;;;;;;;; Border
+;;;;;;;;;;;;;;;;;;;;;;;;;; Fire Detection for Robot
+
+
+mov si,0
+mov ch,0
+mov cl,canoncount
+loopdetection:
+
+mov bl,rowstart[si] ; row 
+mov bh,temp3[si] ; column
+
+cmp bl,16
+jle outofrange
+cmp bh,coalrobot.column
+jb outofrange
+mov dl,coalrobot.column
+add dl,7
+cmp bh,dl
+ja outofrange
+dec coalrobot.life
+mov bool3[si],0
+
+
+outofrange:
+
+inc si
+
+loop loopdetection
+
+cmp coalrobot.life,0
+je exit
+
+;;;;;;;;;;;;;;;;;;;;;;;;;; Fire Detection Ends
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;; Fire Detection for canons
+
+
+mov bl,rowstart[3] ; row 
+mov bh,temp3[3] ; column
+
+cmp bl,2
+jg outofrange2
+cmp bh,canon1.column 
+jb outofrange2
+mov dl,canon1.column
+add dl,4
+cmp bh,dl
+jg outofrange2
+dec canon1.life
+inc score
+mov boolrf,0
+outofrange2:
+
+cmp canoncount,2
+jb nr 
+
+cmp bl,2
+jg outofrange3
+cmp bh,canon2.column 
+jb outofrange3
+mov dl,canon2.column
+add dl,4
+cmp bh,dl
+jg outofrange3
+dec canon2.life
+inc score
+mov boolrf,0
+
+outofrange3:
+
+cmp canoncount,3
+jb nr
+
+cmp bl,2
+jg outofrange4
+cmp bh,canon3.column 
+jb outofrange4
+mov dl,canon3.column
+add dl,4
+cmp bh,dl
+jg outofrange4
+dec canon3.life
+inc score
+mov boolrf,0
+
+outofrange4:
+
+
+nr:
 
 
 
 
-
-
-
-
+;;;;;;;;;;;;;;;;;;;;;;;;;; Fire Detection for canons ends
 
 mov ax,0
 mov cx,0000h			  ; 0000h           
@@ -521,22 +744,6 @@ mov dx,9FFFh                      ; TIMER 0FFFh ; 0Fh 4240h for 1 second delay
 mov ah,86h
 int 15h
 
-;call interface
-
-;MOV AH, 06h ; function number
-;MOV AL, 0
-;mov ch,0   ; start row
-;MOV cl, 0 ; start col
-;MOV DH, 29 ; row end
-;MOV DL, 79 ; col end
-;MOV BH, 0 ; color (sky blue)
-;INT 10h
-
-
-
-;mov ax, 1003h
-;mov bx, 0
-;int 10h 
 
 ;///////////////////////////////////////////// Boundary checks for canons
 
@@ -608,8 +815,11 @@ ss4:
 cmp canon1.life,0
 jg repeat1
 cmp canon2.life,0
+jg repeat1
+cmp canon3.life,0
 jle exit
 ;;;;;;;;;;;;;;;;;;;; GAME OVER
+
 
 
 repeat1:
@@ -617,11 +827,28 @@ repeat1:
 
 inc count
 
-cmp count,120
-jne call1
-inc bulletspeed
+;mov ax,count
+;mov bl,130
+;div bl
+
+cmp count,130
+jne call0
+cmp bulletspeed,3
+jge call1
+add bulletspeed,1
+jmp call1
+
+call0:
+;cmp count,260
+;jne call1
+;add bulletspeed,1
+
 
 call1:
+
+mov ah,0ch
+int 21h
+
 jmp main1
 
 
@@ -676,6 +903,38 @@ cls proc
 	pop ax
 	ret
 cls endp
+
+
+numTostring proc
+
+  push ax
+  push bx
+  push cx
+  push dx
+  mov ah,0
+  mov al,score
+  mov bl,10
+  div bl
+  mov scores[0],al
+  add scores[0],30h
+  mov scores[1],ah
+  add scores[1],30h
+  pop dx
+  pop cx
+  pop bx
+  pop ax
+ret
+numTostring endp
+
+
+
+
+
+
+
+
+
+
 
 
 drawstring proc
@@ -895,118 +1154,7 @@ interface proc ;/////////////////////// Background Starts
 
 interface endp ;//////////////////////    Background ends
 
-printrec proc ;///////////////////////    Print Rectangle
-push ax
-push bx
-push cx
-push dx
-push row
-push col
 
-mov temp1,0
-
-;;;;;;;;;;;;;;;;;; upper line 
-mov cx,col ; col
-mov dx,row ; row
-mov ax,width1
-loop1::
-cmp temp1,ax
-je loop1e
-push ax
-mov ah,0ch
-mov al,color1 ; color
-int 10h
-pop ax   
-add cx,1  ; inc col
-inc temp1
-jmp loop1
-
-loop1e:
-;;;;;;;;;;;;;;;;; upper line ends
-
-;;;;;;;;;;;;;;;;; lower line
-mov temp1,0
-mov cx,col ; col
-mov ax,height1
-add row,ax
-mov dx,row ; row
-sub row,ax
-
-loop2:
-mov ax,width1
-cmp temp1,ax
-je loop2e
-push ax
-mov ah,0ch
-mov al,color1 ; color
-int 10h
-pop ax   
-add cx,1 ; inc col
-inc temp1
-jmp loop2
-
-loop2e:
-;;;;;;;;;;;;;;;; lower line ends
-
-
-;;;;;;;;;;;;;;; left row
-
-mov temp1,0
-mov cx,col ; col
-mov dx,row ; row
-loop3:
-mov ax,height1
-cmp temp1,ax
-je loop3e
-push ax
-mov ah,0ch
-mov al,color1 ; color
-int 10h
-pop ax   
-add dx,1 ; row inc
-inc temp1
-jmp loop3
-
-loop3e:
-;;;;;;;;;;;;;; left row ends
-
-
-;;;;;;;;;;;;;; right row
-mov ax,width1
-add col,ax
-
-mov dx,row
-mov temp1,-1
-mov cx,col ; col
-loop4:
-mov ax,height1
-cmp temp1,ax
-je loop4e
-push ax
-mov ah,0ch
-mov al,color1 ; color
-mov cx,col ; col
-int 10h
-pop ax   
-add dx,1 ; inc row
-
-inc temp1
-jmp loop4
-
-loop4e:
-
-;;;;;;;;;;;;; right row ends
-
-pop col
-pop row
-pop dx
-pop cx
-pop bx
-pop ax
-
-ret
-
-printrec endp  ;///////////////// Print Rectangle ends
 
 end
 
