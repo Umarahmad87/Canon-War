@@ -10,8 +10,9 @@
 .data
 temp1 word ?
 temp2 word ?
-temp3 byte 0,0,0,0,0
+temp3 byte 0,0,0,0,0,0,0,0
 varf byte 0,0,0
+f2 byte 0,0,0,0
 
 row word ?
 col word ?
@@ -38,10 +39,10 @@ bool2 byte 0
 bool3 byte 0,0,0,0
 rightborder byte 55
 canoncount byte 1
-rowstart byte 2,2,2,16
+rowstart byte 2,2,2,16,16,16
 bool4 byte 0
 boolr byte 0
-boolrf byte 0
+boolrf byte 0,0,0
 bulletspeed byte 1,1
 count word 0
 
@@ -200,6 +201,9 @@ mov ax,0
 mov bx,0
 mov cx,0
 mov dx,0
+
+;mov ax,1 ; Mouse
+;int 33h
 
 
 cmp canoncount,3
@@ -496,6 +500,9 @@ loop drawrobot
 mov ah,1
 int 16h
 
+mov cl,0
+mov ch,0
+
 mov cl,al 
 mov ch,ah ; ah 48h ;up  down 50h left 4Bh Right 4Dh
 
@@ -511,7 +518,6 @@ inc coalrobot.column
 
 
 jumpout:
-
 
 cmp coalrobot.column,51
 jb normalrun1 
@@ -541,35 +547,89 @@ sss2:
 
 ssso:
 
+mov f2[0],0
+mov f2[1],0
+mov f2[2],0
+mov f2[3],0
 
-cmp boolrf,0
+mov si,3
+mov di,0
+mov cx,3
+
+sfs:
+push cx
+
+
+mov ah,1
+int 16h
+
+mov cl,0
+mov ch,0
+
+mov cl,al 
+mov ch,ah ; ah 48h ;up  down 50h left 4Bh Right 4Dh
+
+;cmp boolrf,0
+;je firrl
+cmp boolrf[di],0
+jne chkbt
+cmp cl,32 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Checking keyboard interrupt
 je firrl
+
+chkbt:
 jmp firr
 
 firrl:
   mov bl,coalrobot.column
-  mov temp3[3],bl
-  mov rowstart[3],16
-  mov boolrf,1
-
+  mov temp3[si],bl
+  mov rowstart[si],16
+  mov boolrf[di],1
+  mov f2[di],1
 firr:
-    
+        cmp boolrf[di],0
+        je fieq0
 	mov ah,02h
-	mov dh,rowstart[3]  ; row max(30)
-	mov dl,temp3[3] ; col
+	mov dh,rowstart[si]  ; row max(30)
+	mov dl,temp3[si] ; col
 	int 10h
-	mov al,'|'
+	mov al,'|'                         ; Robot fire
 	mov bl,137  ; color
 	mov cx,1 
 	mov ah,09h
 	int 10h
-	dec rowstart[3]
+	dec rowstart[si]
 
-cmp rowstart[3],0 
+cmp rowstart[si],0 
 jne fieq
-mov boolrf,0
+fieq0:
+mov rowstart[si],39
+mov temp3[si],54
+mov boolrf[di],0
 
 fieq:
+cmp f2[di],1
+jne fieq2
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Special Fire Starts
+inc si
+inc di
+pop cx
+dec cx
+push cx
+
+fieq2:
+inc si
+inc di
+
+pop cx
+dec cx
+
+cmp cx,1
+jle sfe
+
+
+
+jmp sfs
+sfe:
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;; Robot Drawing Ends
@@ -677,66 +737,124 @@ je exit
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Fire Detection Ends
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;; Fire Detection for canons
 
 
-mov bl,rowstart[3] ; row 
-mov bh,temp3[3] ; column
+;;;;;;;;;;;;;;;;;;;;;;;;;; Fire Detection 2 for canons
+
+mov si,3
+mov di,0
+mov cx,3
+
+firedet:
+push cx
+
+mov bl,rowstart[si] ; row 
+mov bh,temp3[si] ; column
+
+cmp canon1.life,0
+jle c2
+
 
 cmp bl,2
-jg outofrange2
+jg outofrange22
 cmp bh,canon1.column 
-jb outofrange2
+jb outofrange22
 mov dl,canon1.column
 add dl,4
 cmp bh,dl
-jg outofrange2
+jg outofrange22
 dec canon1.life
 inc score
-mov boolrf,0
-outofrange2:
+mov boolrf[di],0
+outofrange22:
+
+c2:
 
 cmp canoncount,2
-jb nr 
+jb nr2 
+
+cmp canon2.life,0
+jle c3
 
 cmp bl,2
-jg outofrange3
+jg outofrange32
 cmp bh,canon2.column 
-jb outofrange3
+jb outofrange32
 mov dl,canon2.column
 add dl,4
 cmp bh,dl
-jg outofrange3
+jg outofrange32
 dec canon2.life
 inc score
-mov boolrf,0
+mov boolrf[di],0
 
-outofrange3:
+outofrange32:
+
+c3:
+
 
 cmp canoncount,3
-jb nr
+jb nr2
+
+cmp canon3.life,0
+jle c4
 
 cmp bl,2
-jg outofrange4
+jg outofrange42
 cmp bh,canon3.column 
-jb outofrange4
+jb outofrange42
 mov dl,canon3.column
 add dl,4
 cmp bh,dl
-jg outofrange4
+jg outofrange42
 dec canon3.life
 inc score
-mov boolrf,0
-
-outofrange4:
+mov boolrf[di],0
 
 
-nr:
+outofrange42:
+c4:
+
+
+nr2:
+inc si
+inc di
+pop cx
+dec cx
+cmp cx,0
+je firedetr
+
+jmp firedet
+
+firedetr:
+;;;;;;;;;;;;;;;;;;;;;;;;;; Fire Detection 2 for canons ends
 
 
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;; Fire Detection for canons ends
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 mov ax,0
 mov cx,0000h			  ; 0000h           
