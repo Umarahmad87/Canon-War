@@ -26,6 +26,7 @@ string1 byte "Coal Man","$"
 string2 byte "Canon A","$"
 string3 byte "Canon B","$"
 string4 byte "Canon C","$"
+Pause1 byte "Pause","$"
 scorestring byte "Score","$"
 score byte 0
 scores byte "000","$"
@@ -519,13 +520,13 @@ inc coalrobot.column
 
 jumpout:
 
-cmp coalrobot.column,51
+cmp coalrobot.column,51 ; 51
 jb normalrun1 
 mov coalrobot.column,51
 
 normalrun1:
 
-cmp coalrobot.column,1
+cmp coalrobot.column,1 ;1
 jg normalrun2
 mov coalrobot.column,1
 
@@ -569,6 +570,44 @@ mov ch,0
 mov cl,al 
 mov ch,ah ; ah 48h ;up  down 50h left 4Bh Right 4Dh
 
+cmp cl,'P'
+je pause
+cmp cl,'p'
+je pause                                               ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Pause
+jmp resume1
+
+pause:
+
+mov ah,0ch
+int 21h
+
+mov ah,0
+int 16h
+
+mov cl,0
+mov ch,0
+
+mov cl,al 
+mov ch,ah ; ah 48h ;up  down 50h left 4Bh Right 4Dh
+
+cmp cl,'P'
+je resume1
+cmp cl,'p'
+je resume1
+
+mov ax,0
+mov cx,0000h			  ; 0000h           
+mov dx,9FFFh                      ; TIMER 0FFFh ; 0Fh 4240h for 1 second delay
+mov ah,86h
+int 15h
+
+;mov ah,0ch
+;int 21h
+
+jmp pause
+
+resume1:
+
 ;cmp boolrf,0
 ;je firrl
 cmp boolrf[di],0
@@ -585,6 +624,7 @@ firrl:
   mov rowstart[si],16
   mov boolrf[di],1
   mov f2[di],1
+  mov f2[di+1],1
 firr:
         cmp boolrf[di],0
         je fieq0
@@ -608,13 +648,14 @@ mov boolrf[di],0
 
 fieq:
 cmp f2[di],1
-jne fieq2
+jne fieq2  ; fieq2
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Special Fire Starts
 inc si
 inc di
 pop cx
 dec cx
 push cx
+jmp sfe
 
 fieq2:
 inc si
@@ -623,7 +664,7 @@ inc di
 pop cx
 dec cx
 
-cmp cx,1
+cmp cx,0
 jle sfe
 
 
@@ -633,6 +674,9 @@ sfe:
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;; Robot Drawing Ends
+
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; FIRE
 
@@ -831,31 +875,6 @@ firedetr:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 mov ax,0
 mov cx,0000h			  ; 0000h           
 mov dx,9FFFh                      ; TIMER 0FFFh ; 0Fh 4240h for 1 second delay
@@ -917,13 +936,9 @@ jle label6
 jmp ss4
 label5:
   mov bool4,1
-  ;dec canon3.life
-  ;inc coalrobot.column
   jmp ss4
 label6:
   mov bool4,0
-  ;dec canon3.life
-  ;inc coalrobot.column
 ss4:
 
 
@@ -945,11 +960,9 @@ repeat1:
 
 inc count
 
-;mov ax,count
-;mov bl,130
-;div bl
 
-cmp count,130
+
+cmp count,300
 jne call0
 cmp bulletspeed,3
 jge call1
@@ -957,9 +970,6 @@ add bulletspeed,1
 jmp call1
 
 call0:
-;cmp count,260
-;jne call1
-;add bulletspeed,1
 
 
 call1:
