@@ -33,6 +33,7 @@ scores byte "000","$"
 stringspeed byte "Speed ","$"
 gameover byte "Game Over","$"
 gamebegin byte "Game Begins in",10,"$"
+robotwins byte "Robot Wins","$"
 gamecount byte '3$'
 msg1 db " hello, world! "
 bool1 byte 0
@@ -326,9 +327,9 @@ int 10h
 	mov dh,6  ; row max(30)
 	mov dl,64 ; col
 	int 10h
-	mov al,'|'
+	mov al,223 ;'|'
 	push word ptr colortext
-	mov colortext,141
+	mov colortext,143
 	mov bl,colortext  ; color
 	cmp coalrobot.life,0
 	jle cm0
@@ -336,13 +337,17 @@ int 10h
 	mov ah,09h
 	int 10h
 	cm0:
+        pop word ptr colortext
 
+        push word ptr colortext
+	mov colortext,141
+	
 
 	mov ah,02h
 	mov dh,9  ; row max(30)
 	mov dl,64 ; col
 	int 10h
-	mov al,'|'
+	mov al,223;'|'
 	mov bl,colortext  ; color
 	cmp canon1.life,0
 	jle cm1
@@ -355,7 +360,7 @@ int 10h
 	mov dh,12  ; row max(30)
 	mov dl,64 ; col
 	int 10h
-	mov al,'|'
+	mov al,223;'|'
 	mov bl,colortext  ; color
 	cmp canon2.life,0
 	jle cm2	
@@ -368,7 +373,7 @@ int 10h
 	mov dh,15  ; row max(30)
 	mov dl,64 ; col
 	int 10h
-	mov al,'|'
+	mov al,223;'|'
 	mov bl,colortext  ; color
 	cmp canon3.life,0
 	jle cm3	
@@ -713,7 +718,7 @@ pop cx
 	mov dh,rowstart[si]  ; row max(30)
 	mov dl,temp3[si] ; col
 	int 10h
-	mov al,'*'
+	mov al,173  ;'*'
 	mov bl,137  ; color
 	mov cx,1 
 	mov ah,09h
@@ -950,7 +955,7 @@ jg repeat1
 cmp canon2.life,0
 jg repeat1
 cmp canon3.life,0
-jle exit
+jle Robotwin
 ;;;;;;;;;;;;;;;;;;;; GAME OVER
 
 
@@ -980,21 +985,51 @@ int 21h
 jmp main1
 
 
+Robotwin:
+
+mov ah,0
+mov al,13h ; graphic mode col(640) x row(480) ; 80 x 30
+int 10h
+
+mov ah,02h
+mov dh,10  ; row max(30)
+mov dl,12 ; col
+mov bl,10
+int 10h
+mov dx,offset robotwins
+mov cx,1
+mov ah,09h
+int 21h
+jmp exitgame
+
+
+
 
 exit:
 
 mov ah,0
-mov al,12h ; graphic mode col(640) x row(480) ; 80 x 30
+mov al,13h ; graphic mode col(640) x row(480) ; 80 x 30
 int 10h
 
+mov ah,02h
+mov dh,10  ; row max(30)
+mov dl,12 ; col
+mov bl,10
+int 10h
 mov dx,offset gameover
+mov cx,1
 mov ah,09h
 int 21h
 
+;mov dx,offset gameover
+;mov ah,09h
+;int 21h
+
+
+exitgame:
+
 mov ah,4ch
 int 21h
-
-
 
 main endp   ;/////////////////////////////////////////////// Main Ends
 
@@ -1055,16 +1090,6 @@ ret
 numTostring endp
 
 
-
-
-
-
-
-
-
-
-
-
 drawstring proc
 	push ax
 	push bx
@@ -1120,7 +1145,7 @@ drawcanon proc
 	;mov dl,56  ; col max(80) // max 56 for game
 	int 10h
 
-	mov al,'*'
+	mov al,'*' ;223 
 	mov bl,colortext  ; color
 	mov cx,5 ; prints alphabet 5 times
 	mov ah,09h
