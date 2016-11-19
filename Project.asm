@@ -47,6 +47,10 @@ boolr byte 0
 boolrf byte 0,0,0
 bulletspeed byte 1,1
 count word 0
+health byte 'H'
+hrow byte 0
+hcol byte 40
+boolh byte 0
 
 myrobot db "__  ^-^ "
 db 	   "|| (o o)"
@@ -194,18 +198,11 @@ call scoreboard
 main proc ;//////////////////////////////////////////////////// Main
 main1:
 
-;mov ah,0
-;mov al,12h ; graphic mode col(640) x row(480) ; 80 x 30
-;int 10h
-
 
 mov ax,0
 mov bx,0
 mov cx,0
 mov dx,0
-
-;mov ax,1 ; Mouse
-;int 33h
 
 
 cmp canoncount,3
@@ -321,6 +318,56 @@ mov ah,09h
 int 10h
 
 
+cmp hrow,26
+je reseth
+cmp count,300
+je ch1
+cmp score,17
+je ch2
+cmp score,25
+je ch3
+
+cmp boolh,1
+jne nh
+
+mov ah,02h
+mov dh,hrow  ; row max(30)
+mov dl,hcol ; col
+int 10h
+mov al,health ;'|'
+push word ptr colortext
+mov colortext,148
+mov bl,colortext  ; color
+mov cx,1
+mov ah,09h
+int 10h
+
+
+inc hrow
+jmp nh
+
+reseth:
+ mov boolh,0
+ mov hrow,0
+ jmp nh 
+ch1:
+mov boolh,1
+jmp nh
+ch2:
+mov boolh,1
+mov hcol,24
+jmp nh
+
+ch3:
+mov hcol,8
+mov boolh,1
+jmp nh
+
+
+nh:
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Print Life Times
 	
 	mov ah,02h
@@ -329,7 +376,7 @@ int 10h
 	int 10h
 	mov al,223 ;'|'
 	push word ptr colortext
-	mov colortext,143
+	mov colortext,148
 	mov bl,colortext  ; color
 	cmp coalrobot.life,0
 	jle cm0
@@ -491,10 +538,10 @@ mov si,offset myrobot
 mov bx,temp2
 add si,bx
 mov stringsize,8-1
-mov dh,rowrobot  ; row max(30)
+mov dh,rowrobot ; row max(30)
 mov dl,coalrobot.column ; col max(80)
 push word ptr colortext
-mov colortext,137
+mov colortext,130;137
 call drawstring
 pop word ptr colortext
 add temp2,8
@@ -637,8 +684,8 @@ firr:
 	mov dh,rowstart[si]  ; row max(30)
 	mov dl,temp3[si] ; col
 	int 10h
-	mov al,'|'                         ; Robot fire
-	mov bl,137  ; color
+	mov al, 178;'|'                         ; Robot fire
+	mov bl,130 ;137  ; color
 	mov cx,1 
 	mov ah,09h
 	int 10h
@@ -784,10 +831,27 @@ cmp coalrobot.life,0
 je exit
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Fire Detection Ends
+;;;;;;;;;;;;;;;;;;;;;;;;;; Health Increment
+
+mov bl,hrow ; row 
+mov bh,hcol ; column
+
+cmp bl,16
+jle outofrange2
+cmp bh,coalrobot.column
+jb outofrange2
+mov dl,coalrobot.column
+add dl,7
+cmp bh,dl
+ja outofrange2
+add coalrobot.life,2
+mov boolh,0
+mov hrow,0
+
+outofrange2:
 
 
-
-
+;;;;;;;;;;;;;;;;;;;;;;;;;; Health Increment ends
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Fire Detection 2 for canons
 
 mov si,3
@@ -898,9 +962,6 @@ jle label2
 jmp ss2
 label1:
   mov bool1,1
-  ;mov canon1.column,0
-  ;dec canon1.life
-  ;inc coalrobot.column
   jmp ss2
 label2:
   mov bool1,0
@@ -1145,20 +1206,21 @@ drawcanon proc
 	;mov dl,56  ; col max(80) // max 56 for game
 	int 10h
 
-	mov al,'*' ;223 
-	mov bl,colortext  ; color
+	mov al,219 ;'*' ;223 
+	mov bl,1; 4 colortext  ; color
 	mov cx,5 ; prints alphabet 5 times
 	mov ah,09h
 	int 10h
 
+	
 
 
 	mov ah,02h
 	inc dh
 	inc dl
 	int 10h
-	mov al,'*'
-	mov bl,colortext  ; color
+	mov al,219;'*'
+	mov bl,3 ; 6 colortext  ; color
 	mov cx,3 ; prints alphabet 3 times
 	mov ah,09h
 	int 10h
@@ -1167,11 +1229,12 @@ drawcanon proc
 	inc dh
 	inc dl
 	int 10h
-	mov al,'*'
-	mov bl,colortext  ; color
+	mov al,178;219;'*'
+	mov bl,15;colortext  ; color
 	mov cx,1 ; prints alphabet 1 times
 	mov ah,09h
 	int 10h
+
 
 	pop dx
 	pop cx
@@ -1202,7 +1265,7 @@ scoreboard proc  ;////////////////////  Scoreboard starts
 	MOV cl, 60 ; start col
 	MOV DH, 24 ; row end
 	MOV DL, 60 ; col end
-	MOV BH, 0 ; color 
+	MOV BH, 4 ; color 
 	INT 10h
 
 	mov ax,0
@@ -1216,7 +1279,7 @@ scoreboard proc  ;////////////////////  Scoreboard starts
 	MOV cl, 79 ; start col
 	MOV DH, 24 ; row end
 	MOV DL, 79 ; col end
-	MOV BH, 0 ; color 
+	MOV BH, 4 ; color 
 	INT 10h
 
 	mov ax,0
@@ -1230,7 +1293,7 @@ scoreboard proc  ;////////////////////  Scoreboard starts
 	MOV cl, 60 ; start col
 	MOV DH, 0 ; row end
 	MOV DL, 79 ; col end
-	MOV BH, 0 ; color 
+	MOV BH, 4 ; color 
 	INT 10h
 
 	mov ax,0
@@ -1244,8 +1307,25 @@ scoreboard proc  ;////////////////////  Scoreboard starts
 	MOV cl, 60 ; start col
 	MOV DH, 24 ; row end
 	MOV DL, 79 ; col end
-	MOV BH, 0 ; color 
+	MOV BH, 4 ; color 
 	INT 10h
+
+
+	mov ax,0
+	mov bx,0
+	mov cx,0
+	mov dx,0
+
+	MOV AH, 06h ; function number
+	MOV AL, 0
+	mov ch,1   ; start row
+	MOV cl, 61 ; start col
+	MOV DH, 23 ; row end
+	MOV DL, 78 ; col end
+	MOV BH, 6 ; 6 orange color 14 yellow 2 GREEN
+	INT 10h
+
+
 
 	pop dx
 	pop cx
@@ -1271,7 +1351,7 @@ interface proc ;/////////////////////// Background Starts
 	MOV cl, 0 ; start col
 	MOV DH, 24 ; row end
 	MOV DL, 79 ; col end
-	MOV BH, 9 ; color (sky blue 9)
+	MOV BH, 0 ; color (sky blue 9)
 	INT 10h
 
 	mov ax,0
