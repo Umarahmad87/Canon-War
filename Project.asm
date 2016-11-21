@@ -660,12 +660,23 @@ jmp pause
 
 resume1:
 
+mov ax,01h
+int 33h
+
+mov ax,3
+int 33h
+
+
+
 ;cmp boolrf,0
 ;je firrl
 cmp boolrf[di],0
 jne chkbt
 cmp cl,32 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Checking keyboard interrupt
 je firrl
+cmp bx,1
+je firrl
+
 
 chkbt:
 jmp firr
@@ -723,6 +734,33 @@ jle sfe
 
 jmp sfs
 sfe:
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Mouse Movement
+
+mov ax,0
+mov bx,0
+mov cx,0
+mov dx,0
+
+mov ax,01h
+int 33h
+
+mov ax,3
+int 33h
+
+mov ax,cx
+mov bl,8
+div bl
+
+cmp al,55
+jge crc
+
+mov coalrobot.column,al
+
+
+crc:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Mosue Movement ends
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;; Robot Drawing Ends
@@ -967,7 +1005,7 @@ label2:
   mov bool1,0
   ;dec canon1.life
   ;inc coalrobot.column
-  inc canoncount
+  ;inc canoncount
 ss2:
 
 cmp canoncount,1
@@ -1027,6 +1065,10 @@ repeat1:
 inc count
 
 
+cmp count,180
+je inccanon
+cmp count,320
+je inccanon
 
 cmp count,300
 jne call0
@@ -1034,6 +1076,9 @@ cmp bulletspeed,3
 jge call1
 add bulletspeed,1
 jmp call1
+inccanon:
+ inc canoncount;
+
 
 call0:
 
