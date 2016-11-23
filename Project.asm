@@ -65,7 +65,9 @@ db         "   _   _"
 
 rowrobot db 16
 
-
+newgame db "New Game","$"
+loadgame db "Load Game","$"
+quit db "Quit Game","$"
 
 canon struc
   column byte ?
@@ -91,6 +93,101 @@ coalrobot robot<>
 .code
 mov ax,@data
 mov ds,ax
+
+
+mov temp1,13
+
+Menu:
+
+mov ah,0
+mov al,12h
+int 10h
+
+mov dh,13  ; row max(30)
+mov dl,32 ; col max(80)
+mov si,offset newgame
+mov stringsize,7
+mov colortext,137
+call drawstring
+
+
+
+mov dh,15  ; row max(30)
+mov dl,32 ; col max(80)
+mov si,offset loadgame
+mov stringsize,8
+mov colortext,137
+call drawstring
+
+mov dh,17  ; row max(30)
+mov dl,32 ; col max(80)
+mov si,offset quit
+mov stringsize,8
+mov colortext,137
+call drawstring
+
+mov ah,02h
+mov dh,byte ptr temp1  ; row max(30)
+mov dl,30 ; col
+int 10h
+mov al, 178;
+mov bl,136 ;137  ; color
+mov cx,1 
+mov ah,09h
+int 10h
+
+
+
+mov ah,0
+int 16h
+
+mov cl,0
+mov ch,0
+
+mov cl,al 
+mov ch,ah ; ah 48h ;up  down 50h left 4Bh Right 4Dh
+
+cmp cl,13
+je gamec
+
+cmp ch,50h
+jne pas1
+
+add temp1,2
+
+cmp temp1,17
+jg temp113
+jmp pas
+
+temp113:
+ mov temp1,13
+
+
+pas1:
+
+cmp ch,48h
+jne pas
+sub temp1,2
+
+cmp temp1,13
+jb temp117
+jmp pas
+temp117:
+ mov temp1,17
+jmp pas
+
+gamec:
+ cmp temp1,13
+ je StartScreen
+ cmp temp1,17
+ je exitgame
+pas:
+jmp Menu
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Menu ends
+
+
+
 
 
 
@@ -755,7 +852,26 @@ div bl
 cmp al,55
 jge crc
 
-mov coalrobot.column,al
+mov cl,coalrobot.column
+cmp al,cl
+jg crc0
+cmp al,cl
+jb crc1
+jmp crc
+crc1:
+sub coalrobot.column,1
+jmp crc
+crc0:
+add coalrobot.column,1
+jmp crc
+
+;add cl,10
+;cmp al,cl
+;jg crc
+;sub cl,20
+;cmp al,cl
+;jb crc
+;mov coalrobot.column,al
 
 
 crc:
@@ -1091,48 +1207,56 @@ int 21h
 jmp main1
 
 
-Robotwin:
+Robotwin::
+
 
 mov ah,0
-mov al,13h ; graphic mode col(640) x row(480) ; 80 x 30
+mov al,12h ; graphic mode col(640) x row(480) ; 80 x 30
 int 10h
 
-mov ah,02h
-mov dh,10  ; row max(30)
-mov dl,12 ; col
-mov bl,10
-int 10h
-mov dx,offset robotwins
-mov cx,1
-mov ah,09h
-int 21h
+
+mov dh,14  ; row max(30)
+mov dl,33 ; col max(80)
+mov si,offset robotwins
+mov stringsize,8
+mov colortext,137
+call drawstring
+
 jmp exitgame
 
 
 
 
-exit:
+exit::
 
 mov ah,0
-mov al,13h ; graphic mode col(640) x row(480) ; 80 x 30
+mov al,12h ; graphic mode col(640) x row(480) ; 80 x 30
 int 10h
 
-mov ah,02h
-mov dh,10  ; row max(30)
-mov dl,12 ; col
-mov bl,10
-int 10h
-mov dx,offset gameover
-mov cx,1
-mov ah,09h
-int 21h
+
+mov dh,14  ; row max(30)
+mov dl,33 ; col max(80)
+mov si,offset gameover
+mov stringsize,8
+mov colortext,137
+call drawstring
+
+;mov ah,02h
+;mov dh,10  ; row max(30)
+;mov dl,12 ; col
+;mov bl,10
+;int 10h
+;mov dx,offset gameover
+;mov cx,1
+;mov ah,09h
+;int 21h
 
 ;mov dx,offset gameover
 ;mov ah,09h
 ;int 21h
 
 
-exitgame:
+exitgame::
 
 mov ah,4ch
 int 21h
