@@ -51,6 +51,15 @@ health byte 'H'
 hrow byte 0
 hcol byte 40
 boolh byte 0
+s_freq word 1200
+
+file1 db "CoalMan",00
+file2 db "Clog",00
+handler dw ?
+buffer dw 5000 dup("$")
+buffer2 db 20 dup('$')
+entername db "Enter your Name: ","$"
+username db 20 dup('$')
 
 myrobot db "__  ^-^ "
 db 	   "|| (o o)"
@@ -68,6 +77,7 @@ rowrobot db 16
 newgame db "New Game","$"
 loadgame db "Load Game","$"
 quit db "Quit Game","$"
+savegame db "Save Game","$" 
 
 canon struc
   column byte ?
@@ -91,13 +101,68 @@ canon4 canon<>
 coalrobot robot<>
 
 .code
+
 mov ax,@data
 mov ds,ax
 
+mov ah,01h
+int 21h
 
 mov temp1,13
+mov s_freq,1030
 
-Menu:
+jmp Menu
+restart:
+
+
+
+mov canon1.column,0
+mov canon1.columnend,55
+mov canon2.column,27
+mov canon2.columnstart,29
+mov canon2.columnend,55
+mov canon3.column,38
+mov canon3.columnstart,39
+mov canon3.columnend,55
+
+
+
+
+
+
+mov gamecount[0],'3'
+mov canoncount,1
+mov canon1.life,10
+mov canon2.life,10
+mov canon3.life,10
+mov canon1.columnstart,0
+mov coalrobot.life,10
+mov coalrobot.score,0
+mov scores[0],'0'
+mov scores[1],'0'
+mov scores[2],'0'
+mov coalrobot.column,30
+mov coalrobot.row,16
+mov count,0
+mov bulletspeed,1
+mov score,0
+
+
+jmp SSC
+;jmp Robotwin
+;jmp exit
+
+Loadgame2:
+mov gamecount[0],'3'
+call Reading
+
+jmp SSC
+
+
+
+Menu:;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Menu
+
+call Inputname
 
 mov ah,0
 mov al,12h
@@ -119,12 +184,22 @@ mov stringsize,8
 mov colortext,137
 call drawstring
 
-mov dh,17  ; row max(30)
+mov dh,19  ; row max(30)
 mov dl,32 ; col max(80)
 mov si,offset quit
 mov stringsize,8
 mov colortext,137
 call drawstring
+
+mov dh,17  ; row max(30)
+mov dl,32 ; col max(80)
+mov si,offset savegame
+mov stringsize,8
+mov colortext,137
+call drawstring
+
+
+
 
 mov ah,02h
 mov dh,byte ptr temp1  ; row max(30)
@@ -136,7 +211,10 @@ mov cx,1
 mov ah,09h
 int 10h
 
+mov dx,s_freq
+call Sound
 
+sfc:
 
 mov ah,0
 int 16h
@@ -155,7 +233,7 @@ jne pas1
 
 add temp1,2
 
-cmp temp1,17
+cmp temp1,19
 jg temp113
 jmp pas
 
@@ -177,11 +255,20 @@ temp117:
 jmp pas
 
 gamec:
- cmp temp1,13
- je StartScreen
- cmp temp1,17
+ cmp temp1,13 ;;;;;;;;;;;;;;;;;; New Game
+ je restart
+ cmp temp1,19 ;;;;;;;;;;;;;;;;;; Quit
  je exitgame
+ cmp temp1,15 ;;;;;;;;;;;;;;;;;; Load Game
+ je Loadgame2
+ cmp temp1,17 ;;;;;;;;;;;;;;;;;; Save Game
+ jne pas 
+ call Writing
 pas:
+
+mov ah,0ch
+int 21h
+
 jmp Menu
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Menu ends
@@ -190,8 +277,8 @@ jmp Menu
 
 
 
-
-
+SSC:
+mov s_freq,1000
 StartScreen:
 
 
@@ -200,7 +287,6 @@ mov ah,0
 mov al,13h
 int 10h
 
-;call interface
 
 mov ah,02h
 mov dh,10  ; row max(30)
@@ -220,38 +306,24 @@ mov dl,18 ; col
 mov bl,10
 int 10h
 mov dx,offset gamecount
-;mov al,byte ptr gamebegin
 mov cx,1;lengthof gamebegin
 mov ah,09h
 int 21h
 
 
-;mov dx,offset gamecount
-;mov al,gamecount
-;mov ah,09h
-;int 21h
-
-;mov ah,02h
-;mov dh,6  ; row max(30)
-;mov dl,64 ; col
-;int 10h
-;mov al,'|'
-;mov bl,3  ; color	
-;mov ah,09h
-;int 10h
-
-
-
-
-
-
 dec gamecount[0]
+
+mov dx,s_freq
+call Sound
+
+add s_freq,1
 
 mov ax,0
 mov cx,000Fh			  ; 0000h           
 mov dx,4240h                      ; TIMER 0FFFh ; 0Fh 4240h for 1 second delay
 mov ah,86h
 int 15h
+
 
 
 cmp gamecount,'0'
@@ -263,25 +335,6 @@ je screenexit
 jmp StartScreen
 
 screenexit:
-
-
-
-
-
-
-
-
-
-
-mov canon1.column,0
-mov canon1.columnend,55
-mov canon2.column,27
-mov canon2.columnstart,29
-mov canon2.columnend,55
-mov canon3.column,38
-mov canon3.columnstart,39
-mov canon3.columnend,55
-
 
 mov col2,0
 mov ah,0
@@ -300,6 +353,9 @@ mov ax,0
 mov bx,0
 mov cx,0
 mov dx,0
+
+
+
 
 
 cmp canoncount,3
@@ -719,6 +775,11 @@ mov ch,0
 mov cl,al 
 mov ch,ah ; ah 48h ;up  down 50h left 4Bh Right 4Dh
 
+cmp cl,'q'                          
+je Menu
+cmp cl,'Q'
+je Menu
+
 cmp cl,'P'
 je pause
 cmp cl,'p'
@@ -738,6 +799,7 @@ mov ch,0
 
 mov cl,al 
 mov ch,ah ; ah 48h ;up  down 50h left 4Bh Right 4Dh
+
 
 cmp cl,'P'
 je resume1
@@ -952,6 +1014,17 @@ fireloope:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Fire End
 
+;;;;;;;;;;;;;;;;;;;;;;;;;; Get User Name
+
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Fire Detection for Robot
 
 
@@ -972,6 +1045,8 @@ add dl,7
 cmp bh,dl
 ja outofrange
 dec coalrobot.life
+mov dx,5500
+call Sound
 mov bool3[si],0
 
 
@@ -999,6 +1074,8 @@ add dl,7
 cmp bh,dl
 ja outofrange2
 add coalrobot.life,2
+mov dx,10500
+call Sound
 mov boolh,0
 mov hrow,0
 
@@ -1032,6 +1109,10 @@ cmp bh,dl
 jg outofrange22
 dec canon1.life
 inc score
+
+mov dx,2500
+call Sound
+
 mov boolrf[di],0
 outofrange22:
 
@@ -1053,6 +1134,10 @@ cmp bh,dl
 jg outofrange32
 dec canon2.life
 inc score
+mov dx,2600
+call Sound
+
+
 mov boolrf[di],0
 
 outofrange32:
@@ -1076,6 +1161,10 @@ cmp bh,dl
 jg outofrange42
 dec canon3.life
 inc score
+mov dx,2750
+call Sound
+
+
 mov boolrf[di],0
 
 
@@ -1181,9 +1270,9 @@ repeat1:
 inc count
 
 
-cmp count,180
+cmp count,100
 je inccanon
-cmp count,320
+cmp count,200
 je inccanon
 
 cmp count,300
@@ -1209,6 +1298,10 @@ jmp main1
 
 Robotwin::
 
+mov ax,0
+mov bx,0
+mov cx,0
+mov dx,0
 
 mov ah,0
 mov al,12h ; graphic mode col(640) x row(480) ; 80 x 30
@@ -1228,6 +1321,30 @@ jmp exitgame
 
 
 exit::
+
+mov cx,30
+mov s_freq,1200
+gos:
+
+mov dx,s_freq
+push dx
+call Sound
+pop dx
+
+add s_freq,50
+cmp s_freq,2250
+jge rs
+jmp ssp
+rs:
+mov s_freq,2245
+
+ssp:
+loop gos
+
+mov ax,0
+mov bx,0
+mov cx,0
+mov dx,0
 
 mov ah,0
 mov al,12h ; graphic mode col(640) x row(480) ; 80 x 30
@@ -1254,15 +1371,49 @@ call drawstring
 ;mov dx,offset gameover
 ;mov ah,09h
 ;int 21h
+jmp exitgame
+gamesave::
 
+;call Writing
 
 exitgame::
+
+
 
 mov ah,4ch
 int 21h
 
 main endp   ;/////////////////////////////////////////////// Main Ends
 
+Inputname proc
+
+push ax
+push bx
+push cx
+push dx
+
+mov ah,0
+mov al,12h
+int 10h
+
+mov dh,14  ; row max(30)
+mov dl,20 ; col max(80)
+mov si,offset entername
+mov stringsize,16
+mov colortext,137
+call drawstring
+
+mov dx,offset username
+mov ah,3fh
+int 21h
+
+pop dx
+pop cx
+pop bx
+pop ax
+
+ret
+Inputname endp
 
 CalculateFirepoint proc
 
@@ -1287,6 +1438,66 @@ ret
 
 CalculateFirepoint endp
 
+;///////////////////////////////////////////////  Sound 
+Sound proc
+
+
+
+push ax
+push bx
+push cx
+push dx
+
+mov al,82 ; always 82
+out 43h,al
+
+
+
+mov cx,10000
+
+soundloop:
+
+push cx
+push dx
+
+mov al,0
+mov ah,0
+mov ax,dx
+
+out 42h,al
+mov al,ah
+out 42h,al
+
+in al,61h
+or al,3 ; 0011
+out 61h,al
+
+pop dx
+pop cx
+
+dec cx
+
+cmp cx,1
+je baher
+
+jmp soundloop
+
+baher:
+
+in al,61h
+and al,11111100b
+out 61h,al
+
+
+pop dx
+pop cx
+pop bx
+pop ax
+
+ret
+
+Sound endp
+;/////////////////////////////////////////////// Sound Ends
 
 cls proc
 	push ax
@@ -1296,6 +1507,266 @@ cls proc
 	pop ax
 	ret
 cls endp
+
+Reading proc ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Reading
+
+mov ax,0
+mov bx,0
+mov cx,0
+mov dx,0
+
+push ax
+push bx
+push cx
+push dx
+
+mov ax,0
+mov bx,0
+mov cx,0
+mov dx,0
+
+mov dx,offset file1
+mov al,0 ; 0->reading  
+mov ah,3dh
+int 21h
+
+mov bx,ax      ; file handler in ax
+mov cx,20      ; Size of file
+mov dx,offset buffer2
+mov ah,3fh
+int 21h
+
+cmp buffer2[0],'$'
+je dontread
+
+mov ax,0
+mov al,buffer2[0]
+sub al,30h
+mov canon1.life,ax
+
+;mov dl,al
+;int 21h
+
+mov ah,0
+mov ax,0
+
+mov al,buffer2[1]
+sub al,30h
+mov coalrobot.life,ax
+
+mov ah,0
+mov ax,0
+mov al,buffer2[2]
+sub al,30h
+mov canon2.life,ax
+
+mov ah,0
+mov ax,0
+mov al,buffer2[3]
+sub al,30h
+mov canon3.life,ax
+
+mov ah,0
+mov al,0
+mov al,buffer2[4]
+sub al,30h
+mov score,al
+
+mov ah,0
+mov al,0
+mov al,buffer2[5]
+sub al,30h
+mov canoncount,al
+
+mov ah,0
+mov al,0
+mov al,buffer2[6]
+sub al,30h
+mov count,ax
+
+mov ah,0
+mov al,0
+mov al,buffer2[7]
+sub al,30h
+mov bulletspeed,al
+
+mov ah,0
+mov al,0
+mov al,buffer2[8]
+sub al,30h
+mov canon1.column,al
+
+mov ah,0
+mov al,0
+mov al,buffer2[9]
+sub al,30h
+mov canon2.column,al
+
+mov ah,0
+mov al,0
+mov al,buffer2[10]
+;sub al,30h
+mov canon3.column,al
+
+
+mov ax,0
+
+mov dx,offset buffer2
+mov ah,9h
+int 21h
+
+
+;mov canon1.column,0
+;mov canon1.columnend,55
+;mov canon2.column,27
+mov canon2.columnstart,29
+mov canon2.columnend,55
+;mov canon3.column,38
+mov canon3.columnstart,39
+mov canon3.columnend,55
+
+
+dontread:
+pop dx
+pop cx
+pop bx
+pop ax
+
+ret
+Reading endp
+
+Writing proc
+
+push ax
+push bx
+push cx
+push dx
+
+
+mov ax,0
+mov bx,0
+mov cx,0
+mov dx,0
+
+;mov ah,0
+;mov al,3h
+;int 10h
+
+;mov al,score
+;mov dl,al
+;int 21h
+
+;mov ah,1
+;int 21h
+
+mov ah,0
+mov al,byte ptr canon1.life ; life
+add al,30h
+mov buffer[0],ax
+mov al,0
+mov ah,0
+mov ax,coalrobot.life
+add ax,30h
+mov buffer[1],ax
+
+mov ah,0
+mov al,0
+mov ax,canon2.life
+add ax,30h
+mov buffer[2],ax
+
+mov ah,0
+mov al,0
+mov ax,canon3.life
+add ax,30h
+mov buffer[3],ax
+
+mov ah,0
+mov al,score
+add al,30h
+mov buffer[4],ax
+
+mov ah,0
+mov al,canoncount
+add al,30h
+mov buffer[5],ax
+
+mov ah,0
+mov ax,count
+add ax,30h
+mov buffer[6],ax
+
+mov ah,0
+mov al,bulletspeed
+add al,30h
+mov buffer[7],ax
+
+mov ah,0
+mov al,canon1.column
+add al,30h
+mov buffer[8],ax
+
+mov ah,0
+mov al,canon2.column
+add al,30h
+mov buffer[9],ax
+
+mov ah,0
+mov al,canon3.column
+;add al,30h
+mov buffer[10],ax
+
+
+mov al,0
+
+
+mov dx,offset file1  	; Deleting file
+mov ah, 41H
+int 21h        
+
+
+mov ah,3ch
+mov cx,0
+mov dx,offset file1  ; Creating file
+int 21h
+
+mov dx,offset file1
+mov al,1 ; 1->writing 2-> read/write
+mov ah,3dh
+int 21h
+
+mov handler,ax
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Append
+;mov handler,ax
+;mov bx,ax  ; moving handler to bx ; handler->data from file
+;mov ah,42h ; use for appending
+;mov al,2   ; mode for writing
+;mov cx,0 
+;mov dx,0
+;int 21h
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Writing
+
+mov bx,handler ;handler      ; file handler in ax
+mov cx,10           ; size of string in file
+mov dx,offset buffer 
+mov ah,40h         ; writing interrupt
+int 21h
+
+
+mov bx,handler
+mov ah,3eh        ; Closing file
+int 21h
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Writing ends
+
+pop dx
+pop cx
+pop bx
+pop ax
+
+
+ret
+Writing endp
 
 
 numTostring proc
